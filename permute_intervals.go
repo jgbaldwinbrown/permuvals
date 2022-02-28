@@ -1,6 +1,7 @@
-package main
+package permuvals
 
 import (
+	"flag"
 	"sort"
 	"strconv"
 	"math/big"
@@ -8,12 +9,18 @@ import (
 	"strings"
 	"fmt"
 	"github.com/jgbaldwinbrown/fasttsv"
-	"flag"
 	"io"
 	"bufio"
 	"os"
 	"github.com/jgbaldwinbrown/go-intervals/intervalset"
 )
+
+type Comparison struct {
+	Permutations OverlapSets
+	Overlaps Overlaps
+	IterCounts OverlapCounts
+	Probs Probs
+}
 
 type Bspan struct {
 	Chrom string
@@ -390,24 +397,18 @@ func FprintProbs(w io.Writer, probs Probs) {
 	}
 }
 
-func main() {
-	flags := GetFlags()
-	w := bufio.NewWriter(os.Stdout)
-	defer w.Flush()
-
+func FullCompare(flags Flags) (c Comparison, err error) {
 	genome, err := GetGenome(flags.GenomeBedPath)
-	if err != nil { panic(err) }
+	if err != nil { return }
 	beds, err := GetBeds(flags.BedPaths)
-	if err != nil { panic(err) }
+	if err != nil { return }
 
-	ovls := GetOverlaps(beds)
-	FprintOvlsBed(w, ovls)
+	c.Overlaps = GetOverlaps(beds)
 	if flags.Iterations > 0 {
 		randgen := rand.New(rand.NewSource(int64(flags.Rseed)))
-		perms := Permutations(beds, genome, flags.Iterations, randgen)
-		iter_counts := CountPermutations(perms)
-		// FprintPermCounts(w, iter_counts)
-		probs := GetProbs(ovls, iter_counts)
-		FprintProbs(w, probs)
+		c.Permutations = Permutations(beds, genome, flags.Iterations, randgen)
+		c.IterCounts = CountPermutations(c.Permutations)
+		c.Probs = GetProbs(c.Overlaps, c.IterCounts)
 	}
+	return
 }
