@@ -3,7 +3,7 @@ package main
 import (
 	"bufio"
 	"os"
-	"github.com/jgbaldwinbrown/permuvals/permuvals"
+	"github.com/jgbaldwinbrown/permuvals/pkg"
 )
 
 func main() {
