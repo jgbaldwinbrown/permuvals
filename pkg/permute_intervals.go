@@ -78,6 +78,12 @@ func WriteBspans(w io.Writer, bs ...Bspan) {
 	}
 }
 
+func WriteBeds(w io.Writer, bs ...Bed) {
+	for _, b := range bs {
+		WriteBspans(w, b.Bspans()...)
+	}
+}
+
 type Overlap struct {
 	Bed
 	Components []string
