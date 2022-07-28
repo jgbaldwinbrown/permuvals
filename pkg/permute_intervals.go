@@ -60,6 +60,24 @@ func MakeBed(name string) (b Bed) {
 	return
 }
 
+func (b Bed) Bspans() []Bspan {
+	var bspans []Bspan
+	for _, chrom := range b.Chroms {
+		for _, ispan := range b.Intervals[chrom].AllIntervals() {
+			span := ispan.(*intervalset.Span)
+			bspan := Bspan{chrom, *span}
+			bspans = append(bspans, bspan)
+		}
+	}
+	return bspans
+}
+
+func WriteBspans(w io.Writer, bs ...Bspan) {
+	for _, b := range bs {
+		fmt.Fprintf(w, "%v\t%v\t%v\n", b.Chrom, b.Span.Min, b.Span.Max)
+	}
+}
+
 type Overlap struct {
 	Bed
 	Components []string
