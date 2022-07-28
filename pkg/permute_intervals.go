@@ -1,6 +1,8 @@
 package permuvals
 
 import (
+	"math"
+	"github.com/montanaflynn/stats"
 	"flag"
 	"sort"
 	"strconv"
@@ -14,6 +16,12 @@ import (
 	"os"
 	"github.com/jgbaldwinbrown/go-intervals/intervalset"
 )
+
+type OvlStats struct {
+	Ncomponents int
+	MeanCounts float64
+	MeanCoverage float64
+}
 
 type Comparison struct {
 	Permutations OverlapSets
@@ -293,6 +301,50 @@ func FprintOvlsBed(w io.Writer, os Overlaps) {
 		for _, span := range bspans {
 			fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t%v\n", span.Chrom, span.Min, span.Max, len(o.Components), span.Width(), Covered(bspans), o.Name)
 		}
+	}
+}
+
+func OvlsStatsNcomp(os Overlaps, nComponents int) OvlStats {
+	var ostats OvlStats
+	var counts []float64
+	var covs []float64
+	for _, o := range os {
+		if len(o.Components) == nComponents {
+			bspans := AllBedSpans(o.Bed)
+			counts = append(counts, float64(len(bspans)))
+			covs = append(covs, float64(Covered(bspans)))
+		}
+	}
+	var err error
+	ostats.Ncomponents = nComponents
+	ostats.MeanCounts, err = stats.Mean(counts)
+	if err != nil {
+		ostats.MeanCounts = math.NaN()
+	}
+	ostats.MeanCoverage, err = stats.Mean(covs)
+	if err != nil {
+		ostats.MeanCoverage = math.NaN()
+	}
+	return ostats
+}
+
+func AllOvlsStats(os Overlaps) []OvlStats {
+	max_nc := -1
+	for _, o := range os {
+		if len(o.Components) > max_nc {
+			max_nc = len(o.Components)
+		}
+	}
+	var out []OvlStats
+	for i:=0; i<=max_nc; i++ {
+		out = append(out, OvlsStatsNcomp(os, i))
+	}
+	return out
+}
+
+func FprintOvlsStats(w io.Writer, os ...OvlStats) {
+	for _, o := range os {
+		fmt.Fprintf(w, "%v\t%v\t%v\n", o.Ncomponents, o.MeanCounts, o.MeanCoverage)
 	}
 }
 
