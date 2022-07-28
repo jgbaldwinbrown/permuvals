@@ -27,6 +27,10 @@ type Bspan struct {
 	intervalset.Span
 }
 
+func MakeBspan(chrom string, min, max int) Bspan {
+	return Bspan{chrom, intervalset.Span{Min: min, Max: max}}
+}
+
 func (b Bspan) Width() int {
 	return b.Max - b.Min
 }
@@ -44,6 +48,7 @@ type Flags struct {
 	GenomeBedPath string
 	Iterations int
 	Rseed int
+	Verbose bool
 }
 
 type Bed struct {
@@ -426,6 +431,15 @@ func FullCompare(flags Flags) (c Comparison, err error) {
 	if err != nil { return }
 	beds, err := GetBeds(flags.BedPaths)
 	if err != nil { return }
+
+	if flags.Verbose {
+		fmt.Println("inputs:")
+		for _, bed := range beds {
+			fmt.Println(bed.Name)
+			bspans := AllBedSpans(bed)
+			WriteBspans(os.Stdout, bspans...)
+		}
+	}
 
 	c.Overlaps = GetOverlaps(beds)
 	if flags.Iterations > 0 {
