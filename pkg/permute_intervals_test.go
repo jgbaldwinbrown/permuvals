@@ -68,13 +68,13 @@ func TestGetProbs(t *testing.T) {
 }
 
 func TestFullCompare(t *testing.T) {
-	flags := Flags{"bpaths.txt", "g.bed", 10, 0}
+	flags := Flags{BedPaths: "bpaths.txt", GenomeBedPath: "g.bed", Iterations: 10, Rseed: 0}
 	comp, err := FullCompare(flags)
 	if err != nil {
 		panic(err)
 	}
 	for _, prob := range comp.Probs {
-		if prob.CountProb > .1 || prob.CoveredProb > .1 {
+		if prob.CountProb > .3 || prob.CoveredProb > .3 {
 			t.Errorf("actual probs do not match expected. Actual: %v.", prob)
 		}
 	}
@@ -103,3 +103,59 @@ func TestFprintOvlsBed(t *testing.T) {
 	fmt.Println(outbuild.String())
 }
 
+
+func expectedBspans() []Bspan {
+	return []Bspan {
+		Bspan{"one", intervalset.Span{Min:5, Max:7}},
+		Bspan{"one", intervalset.Span{Min:99, Max:105}},
+		Bspan{"two", intervalset.Span{Min:3, Max:11}},
+	}
+}
+
+func in1Bspans() []Bspan {
+	return []Bspan {
+		Bspan{"one", intervalset.Span{Min:2, Max:7}},
+		Bspan{"one", intervalset.Span{Min:99, Max:110}},
+		Bspan{"two", intervalset.Span{Min:0, Max:11}},
+	}
+}
+
+func in2Bspans() []Bspan {
+	return []Bspan {
+		Bspan{"one", intervalset.Span{Min:5, Max:22}},
+		Bspan{"one", intervalset.Span{Min:80, Max:105}},
+		Bspan{"two", intervalset.Span{Min:3, Max:20}},
+		Bspan{"three", intervalset.Span{Min:0, Max:11}},
+	}
+}
+
+func genomeBspans() []Bspan {
+	return []Bspan {
+		Bspan{"one", intervalset.Span{Min:0, Max:200}},
+		Bspan{"two", intervalset.Span{Min:0, Max:300}},
+	}
+}
+
+func toBed(name string, spans []Bspan) Bed {
+	b := MakeBed(name)
+	b.AddBspans(spans...)
+	return b
+}
+
+func TestSpanNumPositions(t *testing.T) {
+	span := MakeBspan("one", 0, 199)
+	genome := toBed("genome",genomeBspans())
+	npos := SpanNumPositions(span, genome)
+	if npos != 104 {
+		t.Errorf("npos (%v) not equal to 104", npos)
+	}
+}
+
+func TestSpanNumPositions2(t *testing.T) {
+	span := MakeBspan("two", 0, 298)
+	genome := toBed("genome",genomeBspans())
+	npos := SpanNumPositions(span, genome)
+	if npos != 3 {
+		t.Errorf("npos (%v) not equal to 3", npos)
+	}
+}

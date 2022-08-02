@@ -351,7 +351,10 @@ func FprintOvlsStats(w io.Writer, os ...OvlStats) {
 func SpanNumPositions(span Bspan, genome Bed) (positions int) {
 	chrbspans := AllBedSpans(genome)
 	for _, chrspan := range chrbspans {
-		positions += chrspan.Width() - span.Width()
+		cw, sw := chrspan.Width(), span.Width()
+		if cw >= sw {
+			positions += 1 + cw - sw
+		}
 	}
 	return
 }
