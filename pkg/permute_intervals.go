@@ -371,12 +371,20 @@ func Raw2Bspan(rawpos int, span Bspan, genome Bed) (newspan Bspan) {
 
 func RandomizeSpan(span Bspan, genome Bed, randgen *rand.Rand) Bspan {
 	npos := SpanNumPositions(span, genome)
+	if npos < 1 {
+		return Bspan{}
+	}
 	rawpos := randgen.Intn(npos)
 	return Raw2Bspan(rawpos, span, genome)
 }
 
 func RandomlyPlace(span Bspan, dest *Bed, genome Bed, randgen *rand.Rand) {
 	newspan := RandomizeSpan(span, genome, randgen)
+	if newspan.Chrom == "" {
+		fmt.Fprintln(os.Stderr, "empty newspan")
+		fmt.Fprintln(os.Stderr, span)
+		fmt.Fprintln(os.Stderr, len(genome.Bspans()))
+	}
 	// fmt.Println("newspan:")
 	// fmt.Println(newspan)
 	dest.AddBspans(newspan)
