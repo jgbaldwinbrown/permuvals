@@ -57,6 +57,7 @@ type Flags struct {
 	Iterations int
 	Rseed int
 	Verbose bool
+	MaxComps int
 }
 
 type Bed struct {
@@ -214,6 +215,20 @@ func (b *Bed) IntersectBed(src Bed) {
 	// fmt.Println("end b:", *b)
 }
 
+func (b *Bed) SubtractBed(src Bed) {
+	all_chroms := CombineChroms(*b, src)
+	for _, chrom := range all_chroms {
+		_, b_has_chrom := b.Intervals[chrom]
+		_, src_has_chrom := src.Intervals[chrom]
+		if !b_has_chrom {
+			b.Intervals[chrom] = intervalset.EmptyV1(intervalset.MakeZeroSpan)
+		} else if !src_has_chrom {
+		}else {
+			b.Intervals[chrom].Sub(src.Intervals[chrom])
+		}
+	}
+}
+
 func GetOverlap(beds Beds) Overlap {
 	names := []string{}
 	for _, bed := range beds {
@@ -253,7 +268,7 @@ func BedPerm(beds Beds, perm *big.Int) (bedperm Beds) {
 	return
 }
 
-func GetOverlaps(beds Beds) (overlaps Overlaps) {
+func GetAllOverlaps(beds Beds) (overlaps Overlaps) {
 	perm := big.NewInt(0)
 	maxperm := big.NewInt(0)
 	one := big.NewInt(1)
@@ -264,6 +279,41 @@ func GetOverlaps(beds Beds) (overlaps Overlaps) {
 		overlaps = append(overlaps, GetOverlap(to_overlap))
 	}
 	return
+}
+
+func BinSum(sum *big.Int, src *big.Int) {
+	zero := big.NewInt(0)
+	two := big.NewInt(2)
+	mod := big.NewInt(0)
+	temp := big.NewInt(0).Set(src)
+	for ; temp.Cmp(zero) > 0; temp.Div(temp, two) {
+		mod.Mod(temp, two)
+		sum.Add(sum, mod)
+	}
+}
+
+func GetLimitedOverlaps(beds Beds, maxComps int) (overlaps Overlaps) {
+	perm := big.NewInt(0)
+	maxperm := big.NewInt(0)
+	one := big.NewInt(1)
+	BigPow(maxperm, big.NewInt(int64(len(beds))))
+	binsum := big.NewInt(0)
+
+	for ; perm.Cmp(maxperm) < 0 ; perm.Add(perm, one) {
+		BinSum(binsum, perm)
+		if int(binsum.Int64()) <= maxComps {
+			to_overlap := BedPerm(beds, perm)
+			overlaps = append(overlaps, GetOverlap(to_overlap))
+		}
+	}
+	return
+}
+
+func GetOverlaps(beds Beds, maxComps int) (overlaps Overlaps) {
+	if maxComps < 0 {
+		return GetAllOverlaps(beds)
+	}
+	return GetLimitedOverlaps(beds, maxComps)
 }
 
 func GetFlags() (f Flags) {
@@ -391,7 +441,7 @@ func RandomlyPlace(span Bspan, dest *Bed, genome Bed, randgen *rand.Rand) {
 	dest.AddBspans(newspan)
 }
 
-func Permute(beds Beds, genome Bed, randgen *rand.Rand) (ovls Overlaps) {
+func Permute(beds Beds, genome Bed, randgen *rand.Rand, maxComps int) (ovls Overlaps) {
 	var new_beds Beds
 	for _, bed := range beds {
 		new_bed := MakeBed(bed.Name)
@@ -401,15 +451,15 @@ func Permute(beds Beds, genome Bed, randgen *rand.Rand) (ovls Overlaps) {
 		}
 		new_beds = append(new_beds, new_bed)
 	}
-	ovls = GetOverlaps(new_beds)
+	ovls = GetOverlaps(new_beds, maxComps)
 	// fmt.Println("ovls:")
 	// fmt.Println(ovls)
 	return
 }
 
-func Permutations(beds Beds, genome Bed, iterations int, randgen *rand.Rand) (osets OverlapSets) {
+func Permutations(beds Beds, genome Bed, iterations int, randgen *rand.Rand, maxComps int) (osets OverlapSets) {
 	for i:=0; i<iterations; i++ {
-		osets = append(osets, Permute(beds, genome, randgen))
+		osets = append(osets, Permute(beds, genome, randgen, maxComps))
 	}
 	return
 }
@@ -502,10 +552,10 @@ func FullCompare(flags Flags) (c Comparison, err error) {
 		}
 	}
 
-	c.Overlaps = GetOverlaps(beds)
+	c.Overlaps = GetOverlaps(beds, flags.MaxComps)
 	if flags.Iterations > 0 {
 		randgen := rand.New(rand.NewSource(int64(flags.Rseed)))
-		c.Permutations = Permutations(beds, genome, flags.Iterations, randgen)
+		c.Permutations = Permutations(beds, genome, flags.Iterations, randgen, flags.MaxComps)
 		c.IterCounts = CountPermutations(c.Permutations)
 		c.Probs = GetProbs(c.Overlaps, c.IterCounts)
 	}

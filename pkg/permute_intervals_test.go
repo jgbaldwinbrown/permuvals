@@ -28,7 +28,7 @@ func TestGetOverlaps(t *testing.T) {
 	in1b.AddBspans(in1...)
 	in2b := MakeBed("second")
 	in2b.AddBspans(in2...)
-	ovls := GetOverlaps(Beds{in1b, in2b})
+	ovls := GetOverlaps(Beds{in1b, in2b}, -1)
 	ovlbspans := AllBedSpans(ovls[3].Bed)
 	for i, b := range ovlbspans {
 		if b != expected[i] {
@@ -96,7 +96,7 @@ func TestFprintOvlsBed(t *testing.T) {
 	in1b.AddBspans(in1...)
 	in2b := MakeBed("second")
 	in2b.AddBspans(in2...)
-	ovls := GetOverlaps(Beds{in1b, in2b})
+	ovls := GetOverlaps(Beds{in1b, in2b}, -1)
 
 	outbuild := strings.Builder{}
 	FprintOvlsBed(&outbuild, ovls)
