@@ -345,6 +345,15 @@ func AllBedSpans(b Bed) (out []Bspan) {
 	return
 }
 
+func FprintBeds(w io.Writer, beds ...Bed) {
+	for _, b := range beds {
+		bspans := AllBedSpans(b)
+		for _, span := range bspans {
+			fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t%v\n", span.Chrom, span.Min, span.Max, ".", span.Width(), Covered(bspans), b.Name)
+		}
+	}
+}
+
 func FprintOvlsBed(w io.Writer, os Overlaps) {
 	for _, o := range os {
 		bspans := AllBedSpans(o.Bed)
