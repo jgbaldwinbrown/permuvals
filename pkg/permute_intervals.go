@@ -17,12 +17,14 @@ import (
 	"github.com/jgbaldwinbrown/go-intervals/intervalset"
 )
 
+// Unused
 type OvlStats struct {
 	Ncomponents int
 	MeanCounts float64
 	MeanCoverage float64
 }
 
+// All output from a round of permutations and comparison with real intervals
 type Comparison struct {
 	Permutations OverlapSets
 	Overlaps Overlaps
@@ -30,6 +32,7 @@ type Comparison struct {
 	Probs Probs
 }
 
+// A span as used by a bed file, with a chromosome and a region
 type Bspan struct {
 	Chrom string
 	intervalset.Span
@@ -43,6 +46,7 @@ func (b Bspan) Width() int {
 	return b.Max - b.Min
 }
 
+// Number of basepairs covered by all spans, not taking into account that some spans could overlap
 func Covered(spans []Bspan) (out int) {
 	out=0
 	for _, span := range spans {
@@ -98,6 +102,7 @@ func WriteBeds(w io.Writer, bs ...Bed) {
 	}
 }
 
+// All of the intervals that you get when you intersect a set of bed, plus the names of all the beds used in the intersection
 type Overlap struct {
 	Bed
 	Components []string
@@ -106,6 +111,7 @@ type Overlap struct {
 type Overlaps []Overlap
 type OverlapSets []Overlaps
 
+// Count is the number of overlapped spans, Covered is the number of basepairs overlapped
 type OverlapCount struct {
 	Count []int
 	Covered []int
@@ -115,6 +121,7 @@ type OverlapCount struct {
 
 type OverlapCounts []OverlapCount
 
+// The probability of getting the level of overlap by count or covered, when compared true data to the permuted distribution
 type Prob struct {
 	Name string
 	CountProb float64
@@ -154,6 +161,7 @@ func GetBed(r io.Reader, name string) (b Bed, err error) {
 	return
 }
 
+// put all of the lines in a path into a []string
 func GetBedpaths(bedpaths_path string) (paths []string, err error) {
 	r, err := os.Open(bedpaths_path)
 	if err != nil { return }
@@ -164,6 +172,7 @@ func GetBedpaths(bedpaths_path string) (paths []string, err error) {
 	return
 }
 
+// for each line in bedpaths_path, parse a Bed and add it to beds
 func GetBeds(bedpaths_path string) (beds Beds, err error) {
 	bedpaths, err := GetBedpaths(bedpaths_path)
 	if err != nil { return }
@@ -181,11 +190,13 @@ func GetBeds(bedpaths_path string) (beds Beds, err error) {
 	return
 }
 
+// Just a wrapper for dest.AddBspans
 func AddBed(dest *Bed, src Bed) {
 	// could hand-code this to be faster
 	dest.AddBspans(AllBedSpans(src)...)
 }
 
+// Get a unique list of all chromosomes in the bed file
 func CombineChroms(beds ...Bed) (out []string) {
 	all_chroms := make(map[string]struct{})
 	for _, bed := range beds {
@@ -199,6 +210,7 @@ func CombineChroms(beds ...Bed) (out []string) {
 	return out
 }
 
+// Intersect in place
 func (b *Bed) IntersectBed(src Bed) {
 	// fmt.Println("start b:", *b)
 	// fmt.Println("src:", src)
@@ -215,6 +227,7 @@ func (b *Bed) IntersectBed(src Bed) {
 	// fmt.Println("end b:", *b)
 }
 
+// Subtract in place
 func (b *Bed) SubtractBed(src Bed) {
 	all_chroms := CombineChroms(*b, src)
 	for _, chrom := range all_chroms {
@@ -245,6 +258,7 @@ func GetOverlap(beds Beds) Overlap {
 	return final
 }
 
+// Simple power function using big.Int
 func BigPow(y, x *big.Int) {
 	y.SetInt64(1)
 	two := big.NewInt(2)
@@ -254,6 +268,8 @@ func BigPow(y, x *big.Int) {
 	}
 }
 
+// Generate one of the possible permutations of sets of beds to overlap based
+// on its index being split into binary code, and only including the "1" digits
 func BedPerm(beds Beds, perm *big.Int) (bedperm Beds) {
 	lperm := new(big.Int).Set(perm)
 	two := big.NewInt(2)
@@ -268,6 +284,7 @@ func BedPerm(beds Beds, perm *big.Int) (bedperm Beds) {
 	return
 }
 
+// Get all possible permutations of bed files as overlaps
 func GetAllOverlaps(beds Beds) (overlaps Overlaps) {
 	perm := big.NewInt(0)
 	maxperm := big.NewInt(0)
@@ -281,6 +298,7 @@ func GetAllOverlaps(beds Beds) (overlaps Overlaps) {
 	return
 }
 
+// Add up all of the "1" digits in the binary representation of src, put the result in sum
 func BinSum(sum *big.Int, src *big.Int) {
 	zero := big.NewInt(0)
 	two := big.NewInt(2)
@@ -292,6 +310,7 @@ func BinSum(sum *big.Int, src *big.Int) {
 	}
 }
 
+// Get all permutations of beds, but only overlapping up to maxComps beds at a time
 func GetLimitedOverlaps(beds Beds, maxComps int) (overlaps Overlaps) {
 	perm := big.NewInt(0)
 	maxperm := big.NewInt(0)
@@ -387,6 +406,7 @@ func OvlsStatsNcomp(os Overlaps, nComponents int) OvlStats {
 	return ostats
 }
 
+// Unused
 func AllOvlsStats(os Overlaps) []OvlStats {
 	max_nc := -1
 	for _, o := range os {
@@ -401,12 +421,14 @@ func AllOvlsStats(os Overlaps) []OvlStats {
 	return out
 }
 
+// Unused
 func FprintOvlsStats(w io.Writer, os ...OvlStats) {
 	for _, o := range os {
 		fmt.Fprintf(w, "%v\t%v\t%v\n", o.Ncomponents, o.MeanCounts, o.MeanCoverage)
 	}
 }
 
+// Count the number of possible locations you could place a span in a genome
 func SpanNumPositions(span Bspan, genome Bed) (positions int) {
 	chrbspans := AllBedSpans(genome)
 	for _, chrspan := range chrbspans {
@@ -418,6 +440,7 @@ func SpanNumPositions(span Bspan, genome Bed) (positions int) {
 	return
 }
 
+// From a raw number indicating where to put the span, generate a new span at the indexed location in the genome
 func Raw2Bspan(rawpos int, span Bspan, genome Bed) (newspan Bspan) {
 	chrbspans := AllBedSpans(genome)
 	for _, chrspan := range chrbspans {
@@ -431,6 +454,7 @@ func Raw2Bspan(rawpos int, span Bspan, genome Bed) (newspan Bspan) {
 	return
 }
 
+// Move a span to a random location somewhere in the genome
 func RandomizeSpan(span Bspan, genome Bed, randgen *rand.Rand) Bspan {
 	npos := SpanNumPositions(span, genome)
 	if npos < 1 {
@@ -443,6 +467,7 @@ func RandomizeSpan(span Bspan, genome Bed, randgen *rand.Rand) Bspan {
 	return Raw2Bspan(rawpos, span, genome)
 }
 
+// RandomizeSpan, and put the result in dest
 func RandomlyPlace(span Bspan, dest *Bed, genome Bed, randgen *rand.Rand) {
 	newspan := RandomizeSpan(span, genome, randgen)
 	// fmt.Println("newspan:")
@@ -450,6 +475,7 @@ func RandomlyPlace(span Bspan, dest *Bed, genome Bed, randgen *rand.Rand) {
 	dest.AddBspans(newspan)
 }
 
+// Take all beds, then randomly permute all their span positions, then calculate overlaps for the permuted beds
 func Permute(beds Beds, genome Bed, randgen *rand.Rand, maxComps int) (ovls Overlaps) {
 	var new_beds Beds
 	for _, bed := range beds {
@@ -466,6 +492,7 @@ func Permute(beds Beds, genome Bed, randgen *rand.Rand, maxComps int) (ovls Over
 	return
 }
 
+// run Permute as many times as specified in iterations
 func Permutations(beds Beds, genome Bed, iterations int, randgen *rand.Rand, maxComps int) (osets OverlapSets) {
 	for i:=0; i<iterations; i++ {
 		osets = append(osets, Permute(beds, genome, randgen, maxComps))
@@ -509,6 +536,7 @@ func pcount(val int, dist []int) int {
 	return len(dist)
 }
 
+// Find the probability that the true overlap was that much or more by chance
 func GetProb(ovl Overlap, count OverlapCount) (p Prob) {
 	scount := append([]int{}, count.Count...)
 	sort.Ints(scount)
@@ -569,4 +597,17 @@ func FullCompare(flags Flags) (c Comparison, err error) {
 		c.Probs = GetProbs(c.Overlaps, c.IterCounts)
 	}
 	return
+}
+
+func Full() {
+	flags := GetFlags()
+	w := bufio.NewWriter(os.Stdout)
+	defer w.Flush()
+
+	comp, err := FullCompare(flags)
+	if err != nil { panic(err) }
+	FprintOvlsBed(w, comp.Overlaps)
+	if flags.Iterations > 0 {
+		FprintProbs(w, comp.Probs)
+	}
 }

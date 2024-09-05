@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// for each bspan, keep if it does not intersect src
 func SubtractFull(bspans []Bspan, src *intervalset.Set) []Bspan {
 	out := []Bspan{}
 	for _, bspan := range bspans {
@@ -21,6 +22,7 @@ func SubtractFull(bspans []Bspan, src *intervalset.Set) []Bspan {
 	return out
 }
 
+// Run SubtractFull on each chromosome in b / src
 func (b *Bed) SubtractFullsBed(src Bed) Bed {
 	bspans := []Bspan{}
 	all_chroms := CombineChroms(*b, src)
