@@ -62,6 +62,7 @@ type Flags struct {
 	Rseed int
 	Verbose bool
 	MaxComps int
+	ToPermute []int
 }
 
 type Bed struct {
@@ -335,15 +336,38 @@ func GetOverlaps(beds Beds, maxComps int) (overlaps Overlaps) {
 	return GetLimitedOverlaps(beds, maxComps)
 }
 
+func parseIndices(s string) ([]int, error) {
+	fields := strings.Split(s, ",")
+	out := make([]int, 0, len(fields))
+	for _, f := range fields {
+		idx, e := strconv.Atoi(f)
+		if e != nil {
+			return out, e
+		}
+		out = append(out, idx)
+	}
+	return out, nil
+}
+
 func GetFlags() (f Flags) {
 	flag.StringVar(&f.BedPaths, "b", "", "File containing paths to all bed files to compare")
 	flag.StringVar(&f.GenomeBedPath, "g", "", "Bed file containing the lengths of all chromosomes")
 	flag.IntVar(&f.Iterations, "i", -1, "Number of permutation iterations to perform")
 	flag.IntVar(&f.Rseed, "r", 0, "Random seed for permutations (default 0)")
+	toPermuteStrp := flag.String("p", "", "comma-separated list of 0-indexed indices of beds to permute (default all)")
 	flag.Parse()
 	if f.BedPaths == "" || f.GenomeBedPath == "" {
 		panic(fmt.Errorf("Missing path"))
 	}
+
+	if *toPermuteStrp != "" {
+		var e error
+		f.ToPermute, e = parseIndices(*toPermuteStrp)
+		if e != nil {
+			panic(e)
+		}
+	}
+
 	return
 }
 
@@ -476,15 +500,25 @@ func RandomlyPlace(span Bspan, dest *Bed, genome Bed, randgen *rand.Rand) {
 }
 
 // Take all beds, then randomly permute all their span positions, then calculate overlaps for the permuted beds
-func Permute(beds Beds, genome Bed, randgen *rand.Rand, maxComps int) (ovls Overlaps) {
+func Permute(beds Beds, genome Bed, randgen *rand.Rand, maxComps int, toPermute []int) (ovls Overlaps) {
+	toperm := make(map[int]struct{}, len(toPermute))
+	for _, i := range toPermute {
+		toperm[i] = struct{}{}
+	}
+
 	var new_beds Beds
-	for _, bed := range beds {
-		new_bed := MakeBed(bed.Name)
-		bspans := AllBedSpans(bed)
-		for _, bspan := range bspans {
-			RandomlyPlace(bspan, &new_bed, genome, randgen)
+	for i, bed := range beds {
+		_, ok := toperm[i]
+		if ok || len(toPermute) < 1 {
+			new_bed := MakeBed(bed.Name)
+			bspans := AllBedSpans(bed)
+			for _, bspan := range bspans {
+				RandomlyPlace(bspan, &new_bed, genome, randgen)
+			}
+			new_beds = append(new_beds, new_bed)
+		} else {
+			new_beds = append(new_beds, bed)
 		}
-		new_beds = append(new_beds, new_bed)
 	}
 	ovls = GetOverlaps(new_beds, maxComps)
 	// fmt.Println("ovls:")
@@ -493,9 +527,9 @@ func Permute(beds Beds, genome Bed, randgen *rand.Rand, maxComps int) (ovls Over
 }
 
 // run Permute as many times as specified in iterations
-func Permutations(beds Beds, genome Bed, iterations int, randgen *rand.Rand, maxComps int) (osets OverlapSets) {
+func Permutations(beds Beds, genome Bed, iterations int, randgen *rand.Rand, maxComps int, toPermute []int) (osets OverlapSets) {
 	for i:=0; i<iterations; i++ {
-		osets = append(osets, Permute(beds, genome, randgen, maxComps))
+		osets = append(osets, Permute(beds, genome, randgen, maxComps, toPermute))
 	}
 	return
 }
@@ -592,7 +626,7 @@ func FullCompare(flags Flags) (c Comparison, err error) {
 	c.Overlaps = GetOverlaps(beds, flags.MaxComps)
 	if flags.Iterations > 0 {
 		randgen := rand.New(rand.NewSource(int64(flags.Rseed)))
-		c.Permutations = Permutations(beds, genome, flags.Iterations, randgen, flags.MaxComps)
+		c.Permutations = Permutations(beds, genome, flags.Iterations, randgen, flags.MaxComps, flags.ToPermute)
 		c.IterCounts = CountPermutations(c.Permutations)
 		c.Probs = GetProbs(c.Overlaps, c.IterCounts)
 	}

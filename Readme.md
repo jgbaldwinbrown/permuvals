@@ -21,13 +21,15 @@ To install the command line executable, just run:
 ## Usage
 
 ```
-Usage of permute_intervals:
+Usage of ./permute_intervals:
   -b string
     	File containing paths to all bed files to compare
   -g string
     	Bed file containing the lengths of all chromosomes
   -i int
     	Number of permutation iterations to perform (default -1)
+  -p string
+    	comma-separated list of 0-indexed indices of beds to permute (default all)
   -r int
     	Random seed for permutations (default 0)
 ```
