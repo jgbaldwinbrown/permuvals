@@ -24,14 +24,18 @@ To install the command line executable, just run:
 Usage of ./permute_intervals:
   -b string
     	File containing paths to all bed files to compare
+  -c	Output raw overlap counts from each permutation
   -g string
     	Bed file containing the lengths of all chromosomes
   -i int
     	Number of permutation iterations to perform (default -1)
+  -m int
+    	Maximum number of beds to compare at once (default 4)
   -p string
     	comma-separated list of 0-indexed indices of beds to permute (default all)
   -r int
     	Random seed for permutations (default 0)
+  -v	Print much more information while running
 ```
 
 ## Library
