@@ -350,6 +350,7 @@ func parseIndices(s string) ([]int, error) {
 }
 
 func GetFlags() (f Flags) {
+	flag.BoolVar(&f.Verbose, "v", false, "Print much more information while running")
 	flag.StringVar(&f.BedPaths, "b", "", "File containing paths to all bed files to compare")
 	flag.StringVar(&f.GenomeBedPath, "g", "", "Bed file containing the lengths of all chromosomes")
 	flag.IntVar(&f.Iterations, "i", -1, "Number of permutation iterations to perform")
