@@ -63,6 +63,7 @@ type Flags struct {
 	Verbose bool
 	MaxComps int
 	ToPermute []int
+	CountsPrint bool
 }
 
 type Bed struct {
@@ -356,6 +357,7 @@ func GetFlags() (f Flags) {
 	flag.IntVar(&f.Iterations, "i", -1, "Number of permutation iterations to perform")
 	flag.IntVar(&f.Rseed, "r", 0, "Random seed for permutations (default 0)")
 	flag.IntVar(&f.MaxComps, "m", 4, "Maximum number of beds to compare at once")
+	flag.BoolVar(&f.CountsPrint, "c", false, "Output raw overlap counts from each permutation")
 	toPermuteStrp := flag.String("p", "", "comma-separated list of 0-indexed indices of beds to permute (default all)")
 	flag.Parse()
 	if f.BedPaths == "" || f.GenomeBedPath == "" {
@@ -610,6 +612,14 @@ func FprintProbs(w io.Writer, probs Probs) {
 	}
 }
 
+func FprintIterCounts(w io.Writer, os OverlapCounts) {
+	for _, o := range os {
+		for _, c := range o.Count {
+			fmt.Fprintf(w, "%v\t%v\n", o.Name, c)
+		}
+	}
+}
+
 func FullCompare(flags Flags) (c Comparison, err error) {
 	genome, err := GetGenome(flags.GenomeBedPath)
 	if err != nil { return }
@@ -642,6 +652,10 @@ func Full() {
 
 	comp, err := FullCompare(flags)
 	if err != nil { panic(err) }
+	if flags.CountsPrint {
+		FprintIterCounts(w, comp.IterCounts)
+		return
+	}
 	FprintOvlsBed(w, comp.Overlaps)
 	if flags.Iterations > 0 {
 		FprintProbs(w, comp.Probs)
