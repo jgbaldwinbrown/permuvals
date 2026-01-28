@@ -613,6 +613,8 @@ func FullCompare(flags Flags) (c Comparison, err error) {
 	if err != nil { return }
 	beds, err := GetBeds(flags.BedPaths)
 	if err != nil { return }
+	fmt.Println("genome:", genome)
+	fmt.Println("beds:", beds)
 
 	if flags.Verbose {
 		fmt.Println("inputs:")
@@ -640,6 +642,7 @@ func Full() {
 
 	comp, err := FullCompare(flags)
 	if err != nil { panic(err) }
+	fmt.Println(comp)
 	FprintOvlsBed(w, comp.Overlaps)
 	if flags.Iterations > 0 {
 		FprintProbs(w, comp.Probs)
