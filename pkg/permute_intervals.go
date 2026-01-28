@@ -355,6 +355,7 @@ func GetFlags() (f Flags) {
 	flag.StringVar(&f.GenomeBedPath, "g", "", "Bed file containing the lengths of all chromosomes")
 	flag.IntVar(&f.Iterations, "i", -1, "Number of permutation iterations to perform")
 	flag.IntVar(&f.Rseed, "r", 0, "Random seed for permutations (default 0)")
+	flag.IntVar(&f.MaxComps, "m", 4, "Maximum number of beds to compare at once")
 	toPermuteStrp := flag.String("p", "", "comma-separated list of 0-indexed indices of beds to permute (default all)")
 	flag.Parse()
 	if f.BedPaths == "" || f.GenomeBedPath == "" {
@@ -614,8 +615,6 @@ func FullCompare(flags Flags) (c Comparison, err error) {
 	if err != nil { return }
 	beds, err := GetBeds(flags.BedPaths)
 	if err != nil { return }
-	fmt.Println("genome:", genome)
-	fmt.Println("beds:", beds)
 
 	if flags.Verbose {
 		fmt.Println("inputs:")
@@ -643,7 +642,6 @@ func Full() {
 
 	comp, err := FullCompare(flags)
 	if err != nil { panic(err) }
-	fmt.Println(comp)
 	FprintOvlsBed(w, comp.Overlaps)
 	if flags.Iterations > 0 {
 		FprintProbs(w, comp.Probs)
