@@ -503,6 +503,15 @@ func RandomlyPlace(span Bspan, dest *Bed, genome Bed, randgen *rand.Rand) {
 	dest.AddBspans(newspan)
 }
 
+func RandomizeSpans(bed Bed, genome Bed, randgen *rand.Rand) Bed {
+	new_bed := MakeBed(bed.Name)
+	bspans := AllBedSpans(bed)
+	for _, bspan := range bspans {
+		RandomlyPlace(bspan, &new_bed, genome, randgen)
+	}
+	return new_bed
+}
+
 // Take all beds, then randomly permute all their span positions, then calculate overlaps for the permuted beds
 func Permute(beds Beds, genome Bed, randgen *rand.Rand, maxComps int, toPermute []int) (ovls Overlaps) {
 	toperm := make(map[int]struct{}, len(toPermute))
